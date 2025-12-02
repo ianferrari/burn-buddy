@@ -2,17 +2,17 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>BurnBuddy TV (Final)</title>
+    <title>BurnBuddy TV</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
         body { 
-            background: #1a1a1a; 
+            background: #121212; /* 深色質感背景 */
             color: white; 
             text-align: center; 
-            font-family: sans-serif; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             display: flex; 
             flex-direction: column; 
             justify-content: center; 
@@ -22,77 +22,90 @@
             overflow: hidden; 
         }
         
-        /* 除錯視窗：讓你知道發生什麼事 */
-        #debug-console {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 100px;
-            background: rgba(0,0,0,0.8); color: #0f0; font-family: monospace;
-            font-size: 14px; text-align: left; padding: 10px; overflow-y: scroll;
-            z-index: 99999; border-top: 1px solid #0f0;
+        h1 { 
+            margin-bottom: 25px; 
+            font-weight: 300; 
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
-
+        
+        /* 電視框框 */
         #tv-frame {
-            position: relative; width: 90%; height: 65vh;       
-            background: #000; border: 5px solid #333; border-radius: 10px;
+            position: relative; width: 90%; height: 70vh;       
+            background: #000; 
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             overflow: hidden; margin: 0 auto;
         }
 
         #player { width: 100%; height: 100%; }
 
-        /* 全螢幕遮罩，隨便按都解鎖 */
+        /* 全螢幕解鎖遮罩 */
         #start-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.9); 
+            background: rgba(0,0,0,0.85); 
+            backdrop-filter: blur(5px); /* 磨砂玻璃效果 */
             display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 9000;
+            transition: opacity 0.5s;
         }
 
         #start-btn {
-            padding: 30px 50px; font-size: 2.5rem; font-weight: bold;
-            background: #ff4081; color: white; border: 4px solid white;
-            border-radius: 60px; animation: pulse 2s infinite;
+            padding: 25px 50px; font-size: 2rem; font-weight: bold;
+            background: linear-gradient(45deg, #ff4081, #ff80ab);
+            color: white; border: none;
+            border-radius: 50px; 
+            box-shadow: 0 5px 20px rgba(255, 64, 129, 0.4);
+            animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 64, 129, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(255, 64, 129, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 64, 129, 0); }
         }
-        #status-bar { margin-top: 15px; font-size: 1.5rem; color: #ccc; }
+
+        #status-bar { 
+            margin-top: 20px; 
+            font-size: 1.2rem; 
+            color: #888; 
+            font-weight: 300;
+        }
+        
+        /* 奎奎獎勵模式的特效字 */
+        .reward-text {
+            color: #FFD700 !important;
+            font-weight: bold;
+            transform: scale(1.2);
+            transition: all 0.3s;
+            text-shadow: 0 0 15px #FFD700;
+        }
     </style>
 </head>
 <body>
 
-    <h1 style="margin: 10px;">🔥 BurnBuddy 燃脂神器</h1>
+    <h1>🔥 BurnBuddy 客廳燃脂</h1>
     
     <div id="tv-frame">
         <div id="player"></div>
     </div>
 
     <div id="start-overlay" onclick="tryUnlock()">
-        <button id="start-btn">請按遙控器「任意鍵」</button>
-        <p style="margin-top: 20px; color: #ccc;">(音量鍵、OK鍵、上下左右皆可)</p>
+        <button id="start-btn">按遙控器「任意鍵」啟用</button>
+        <p style="margin-top: 25px; color: #bbb; letter-spacing: 1px;">準備好開始運動了嗎？</p>
     </div>
 
     <div id="status-bar">系統載入中...</div>
-    <div id="debug-console">系統日誌:<br></div>
 
     <script>
-        // --- 1. 日誌系統 ---
-        var debugBox = document.getElementById('debug-console');
-        function log(msg) {
-            var time = new Date().toLocaleTimeString();
-            debugBox.innerHTML = "[" + time + "] " + msg + "<br>" + debugBox.innerHTML;
-        }
+        // --- 核心邏輯 (已移除除錯視窗代碼) ---
+        
+        // 簡單的 console log 方便你未來按 F12 檢查，但不會顯示在電視上
+        function log(msg) { console.log("[BurnBuddy]", msg); }
 
-        window.onerror = function(msg) { log("❌ 錯誤: " + msg); };
-
-        log("🚀 系統啟動 (相容模式 v2.0)...");
-
-        // --- 2. Firebase 設定 (已幫你填好資料庫網址) ---
         var firebaseConfig = {
             apiKey: "AIzaSyDjWvhVo6EM0cW_TDYVehzXcuovuU0lqOs",
             authDomain: "burnbuddy-d68c2.firebaseapp.com",
-            // ★★★ 這裡就是最關鍵的一行，我幫你補上了 ★★★
             databaseURL: "https://burnbuddy-d68c2-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "burnbuddy-d68c2",
             storageBucket: "burnbuddy-d68c2.firebasestorage.app",
@@ -100,14 +113,13 @@
             appId: "1:519617766080:web:ef9c04ea8e3d4d8c218325"
         };
 
-        // --- 3. 初始化 Firebase ---
         try {
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
             }
-            log("✅ Firebase 連線成功！");
+            log("Firebase 連線成功");
         } catch (e) {
-            log("❌ 連線失敗: " + e.message);
+            log("連線失敗: " + e.message);
         }
 
         var database = firebase.database();
@@ -116,67 +128,68 @@
         var overlay = document.getElementById('start-overlay');
         var statusDisplay = document.getElementById('status-bar');
 
-        // --- 4. 解鎖畫面 (讓瀏覽器允許播放聲音) ---
         function tryUnlock() {
             if (isUnlocked) return;
             isUnlocked = true;
-            overlay.style.display = 'none';
-            log("🔓 畫面解鎖！準備接收手機指令...");
-            statusDisplay.innerText = "等待手機指令...";
+            overlay.style.opacity = '0'; // 淡出動畫
+            setTimeout(function(){ overlay.style.display = 'none'; }, 500);
             
-            // 試播一下再暫停
+            statusDisplay.innerText = "手機連線中...請操作手機";
+            
             if (player && typeof player.playVideo === 'function') {
                 player.playVideo();
                 setTimeout(function() { player.pauseVideo(); }, 500);
             }
         }
 
-        // 萬能監聽：不管按什麼都會觸發解鎖
-        document.addEventListener('keydown', function(e) { log("按鍵代碼: " + e.keyCode); tryUnlock(); });
+        // 萬能監聽
+        document.addEventListener('keydown', function(e) { tryUnlock(); });
         document.addEventListener('click', tryUnlock);
         document.addEventListener('touchstart', tryUnlock);
 
-        // --- 5. YouTube API ---
+        // YouTube API
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         window.onYouTubeIframeAPIReady = function() {
-            log("YouTube API 載入完成");
             player = new YT.Player('player', {
-                videoId: 'KJrm8eVs1pE', // 預設影片
+                videoId: 'KJrm8eVs1pE',
                 playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0 },
                 events: {
-                    'onReady': onPlayerReady,
-                    'onError': function(e) { log("YT Error: " + e.data); }
+                    'onReady': onPlayerReady
                 }
             });
         };
 
         function onPlayerReady(event) {
-            log("📺 播放器準備就緒");
-            
-            // 監聽雲端指令
             database.ref('command').on('value', function(snapshot) {
                 var cmd = snapshot.val();
-                log("收到指令: " + cmd);
                 
                 if (isUnlocked) {
                     if (cmd === 'play') {
                         player.playVideo();
-                        statusDisplay.innerText = "▶️ 燃脂開始！";
+                        updateStatus("▶️ 燃脂開始！GO！", false);
                     } else if (cmd === 'pause') {
                         player.pauseVideo();
-                        statusDisplay.innerText = "⏸️ 休息一下";
+                        updateStatus("⏸️ 休息一下", false);
                     } else if (cmd === 'kuikui') {
                         fireConfetti();
-                        statusDisplay.innerText = "🌟 奎奎好棒！ 🌟";
+                        updateStatus("🌟 奎奎好棒！超級星星！ 🌟", true);
+                        // 3秒後恢復文字
+                        setTimeout(function(){
+                            updateStatus("▶️ 繼續燃脂！", false);
+                        }, 3000);
                     }
-                } else {
-                    log("指令略過 (請先按遙控器解鎖)");
                 }
             });
+        }
+
+        function updateStatus(text, isReward) {
+            statusDisplay.innerText = text;
+            if(isReward) statusDisplay.classList.add('reward-text');
+            else statusDisplay.classList.remove('reward-text');
         }
 
         function fireConfetti() {
