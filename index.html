@@ -5,47 +5,68 @@
     <title>BurnBuddy TV</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        body { background: #1a1a1a; color: white; text-align: center; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        body { 
+            background: #1a1a1a; 
+            color: white; 
+            text-align: center; 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            overflow: hidden; 
+        }
         
         h1 { margin-bottom: 20px; text-shadow: 2px 2px 4px #000; }
         
+        /* --- 電視框框 (修正版) --- */
         #tv-frame {
             position: relative;
-            width: 80%;
-            max-width: 900px;
-            aspect-ratio: 16/9;
+            width: 85%; /* 稍微加寬一點 */
+            max-width: 1000px;
+            
+            /* ★★★ 修正重點：強制設定高度，解決電視瀏覽器壓扁問題 ★★★ */
+            height: 65vh;       /* 佔據畫面高度的 65% */
+            min-height: 400px;  /* 最少要有 400px 高 */
+            
             background: #000;
             border: 10px solid #333;
             border-radius: 20px;
             box-shadow: 0 0 50px rgba(0,0,0,0.8);
             overflow: hidden;
+            margin: 0 auto;
         }
 
         #player { width: 100%; height: 100%; }
 
-        /* 新增：覆蓋在影片上的啟動遮罩 */
+        /* --- 啟動遮罩 (加大按鈕版) --- */
         #start-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85); /* 背景深一點 */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            z-index: 10;
+            z-index: 100; /* 確保在最上層 */
         }
+
         #start-btn {
-            padding: 20px 40px;
-            font-size: 2rem;
+            padding: 30px 60px; /* 按鈕加大 */
+            font-size: 2.5rem;  /* 字體加大 */
+            font-weight: bold;
             background: #ff4081;
             color: white;
-            border: none;
-            border-radius: 50px;
+            border: 4px solid white; /* 加白邊 */
+            border-radius: 60px;
             cursor: pointer;
-            box-shadow: 0 0 20px #ff4081;
+            box-shadow: 0 0 40px rgba(255, 64, 129, 0.6);
             animation: pulse 2s infinite;
         }
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -54,18 +75,19 @@
 
         #status-bar {
             margin-top: 30px;
-            padding: 10px 20px;
+            padding: 15px 40px;
             background: #333;
             border-radius: 50px;
-            font-size: 1.5rem;
+            font-size: 1.8rem; /* 字體加大方便電視看 */
             color: #ccc;
             transition: all 0.3s;
         }
+        
         .reward-mode {
             color: #FFD700 !important;
-            transform: scale(1.2);
+            transform: scale(1.1);
             font-weight: bold;
-            text-shadow: 0 0 10px #FFD700;
+            text-shadow: 0 0 20px #FFD700;
         }
     </style>
 </head>
@@ -75,9 +97,10 @@
     
     <div id="tv-frame">
         <div id="player"></div>
+        
         <div id="start-overlay" onclick="unlockAudio()">
-            <button id="start-btn">👆 點此啟用客廳健身房</button>
-            <p style="margin-top: 15px; color: #aaa;">(點擊解鎖音效權限)</p>
+            <button id="start-btn">👆 點此啟用</button>
+            <p style="margin-top: 20px; color: #ccc; font-size: 1.2rem;">(點擊後即可使用手機遙控)</p>
         </div>
     </div>
 
@@ -87,6 +110,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
+        // 你的 Firebase 設定 (已確認正確)
         const firebaseConfig = {
             apiKey: "AIzaSyDjWvhVo6EM0cW_TDYVehzXcuovuU0lqOs",
             authDomain: "burnbuddy-d68c2.firebaseapp.com",
@@ -105,18 +129,19 @@
         let player;
         const videoId = 'KJrm8eVs1pE'; // Coffee 林芊妤 10分鐘燃脂
 
-        // 這是解鎖函數，綁定在遮罩點擊事件上
+        // 解鎖音效權限函式
         window.unlockAudio = function() {
             overlay.style.display = 'none'; // 隱藏遮罩
             statusDisplay.innerText = "系統就緒！請用手機控制";
-            // 這裡可以選擇是否要直接播放，或是等待手機指令
-            // 為了確保解鎖，我們可以讓影片「播放」0.1秒然後馬上「暫停」
+            
+            // 試圖播放一下下再暫停，騙過瀏覽器
             if(player && player.playVideo) {
                  player.playVideo();
-                 setTimeout(() => { player.pauseVideo(); }, 100); 
+                 setTimeout(() => { player.pauseVideo(); }, 200); 
             }
         };
 
+        // 載入 YouTube API
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -125,12 +150,73 @@
         window.onYouTubeIframeAPIReady = function() {
             player = new YT.Player('player', {
                 videoId: videoId,
-                playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0 },
+                playerVars: { 
+                    'playsinline': 1, 
+                    'controls': 0, // 隱藏控制列
+                    'rel': 0, 
+                    'fs': 0 
+                },
                 events: {
                     'onReady': onPlayerReady,
-                    'onError': onPlayerError // 加一個錯誤監聽
+                    'onError': onPlayerError
                 }
             });
         };
 
-        function onPlayerReady
+        function onPlayerReady(event) {
+            console.log("Player Ready");
+            // 監聽 Firebase 指令
+            const statusRef = ref(db, 'command');
+            onValue(statusRef, (snapshot) => {
+                const cmd = snapshot.val();
+                
+                // 只有當遮罩消失後才動作
+                if (overlay.style.display === 'none') {
+                    if (cmd === 'play') {
+                        player.playVideo();
+                        updateStatus("▶️ 燃脂開始！", false);
+                    } else if (cmd === 'pause') {
+                        player.pauseVideo();
+                        updateStatus("⏸️ 休息一下", false);
+                    } else if (cmd === 'kuikui') {
+                        updateStatus("🌟 奎奎好棒！ 🌟", true);
+                        fireConfetti();
+                        setTimeout(() => { 
+                             let state = player.getPlayerState();
+                             updateStatus(state === 1 ? "▶️ 燃脂開始！" : "⏸️ 休息一下", false);
+                        }, 3000);
+                    }
+                }
+            });
+        }
+
+        function onPlayerError(event) {
+            console.error("YouTube Error:", event.data);
+            // 某些影片如果不允許嵌入，這裡會報錯
+            statusDisplay.innerText = "影片載入錯誤 (Code: " + event.data + ")";
+        }
+
+        function updateStatus(text, isReward) {
+            statusDisplay.innerText = text;
+            if (isReward) statusDisplay.classList.add('reward-mode');
+            else statusDisplay.classList.remove('reward-mode');
+        }
+
+        // 彩帶特效
+        function fireConfetti() {
+            var count = 200;
+            var defaults = { origin: { y: 0.7 } };
+            function fire(particleRatio, opts) {
+                confetti(Object.assign({}, defaults, opts, {
+                    particleCount: Math.floor(count * particleRatio)
+                }));
+            }
+            fire(0.25, { spread: 26, startVelocity: 55 });
+            fire(0.2, { spread: 60 });
+            fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+            fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+            fire(0.1, { spread: 120, startVelocity: 45 });
+        }
+    </script>
+</body>
+</html>
