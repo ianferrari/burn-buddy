@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>BurnBuddy TV</title>
+    <style>
+        body { background: #222; color: white; text-align: center; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; }
+        h1 { font-size: 3rem; }
+        #status { font-size: 2rem; color: #ffeb3b; margin-top: 20px; }
+        #video-container { width: 80%; margin: 0 auto; background: #000; height: 300px; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <h1>BurnBuddy 🔥 客廳燃脂中</h1>
+    <div id="video-container">
+        <h2>等待指令中...</h2>
+    </div>
+    <div id="status">目前狀態：待機</div>
+
+    <script type="module">
+        // ★★★ 請把你剛剛在 Firebase 複製的那段程式碼貼在下面取代這裡 ★★★
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+        const firebaseConfig = {
+            // 這裡填入你的 apiKey, authDomain, databaseURL 等等...
+            // 記得要確保有 databaseURL 這一行喔！
+        };
+
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 監聽資料庫變化 (這是接收端最重要的一行！)
+        const statusRef = ref(db, 'command');
+        onValue(statusRef, (snapshot) => {
+            const data = snapshot.val();
+            const display = document.getElementById('status');
+            const container = document.getElementById('video-container');
+            
+            if (data === 'play') {
+                display.innerText = "狀態：開始燃脂！(播放影片)";
+                container.style.backgroundColor = "green";
+            } else if (data === 'pause') {
+                display.innerText = "狀態：休息一下 (暫停)";
+                container.style.backgroundColor = "red";
+            } else if (data === 'kuikui') {
+                display.innerText = "狀態：奎奎好棒！(噴出星星特效)";
+                container.style.backgroundColor = "gold";
+            }
+        });
+    </script>
+</body>
+</html>
