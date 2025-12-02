@@ -4,29 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BurnBuddy 遙控器</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         body { background: #eee; text-align: center; font-family: sans-serif; padding: 20px; }
-        button { width: 100%; padding: 20px; font-size: 1.5rem; margin: 10px 0; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; }
-        button:active { transform: scale(0.95); }
+        h2 { margin-bottom: 30px; color: #333; }
+        button { width: 100%; padding: 25px; font-size: 1.5rem; margin: 10px 0; border: none; border-radius: 15px; cursor: pointer; transition: 0.1s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        button:active { transform: scale(0.96); }
         .btn-play { background: #4CAF50; color: white; }
         .btn-pause { background: #f44336; color: white; }
-        .btn-kui { background: #FFC107; color: black; font-weight: bold; border: 2px solid #eebb00; }
+        .btn-kui { background: #FFC107; color: black; font-weight: bold; border: 3px solid #eebb00; margin-top: 30px; }
     </style>
 </head>
 <body>
 
-    <h2>📱 遙控器</h2>
-    <p>點擊按鈕控制電視</p>
-    <button class="btn-play" id="playBtn">▶️ 開始運動</button>
-    <button class="btn-pause" id="pauseBtn">⏸️ 暫停</button>
-    <br><br>
-    <button class="btn-kui" id="kuiBtn">⭐ 奎奎獎勵鈕</button>
+    <h2>📱 BurnBuddy 遙控器</h2>
+    
+    <button class="btn-play" onclick="sendCommand('play')">▶️ 開始運動</button>
+    <button class="btn-pause" onclick="sendCommand('pause')">⏸️ 暫停休息</button>
+    
+    <button class="btn-kui" onclick="sendCommand('kuikui')">⭐ 奎奎獎勵鈕</button>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+    <div id="msg" style="margin-top:20px; color: gray;">連線中...</div>
 
-        const firebaseConfig = {
+    <script>
+        // --- Firebase 設定 (跟電視端一模一樣) ---
+        var firebaseConfig = {
             apiKey: "AIzaSyDjWvhVo6EM0cW_TDYVehzXcuovuU0lqOs",
             authDomain: "burnbuddy-d68c2.firebaseapp.com",
             databaseURL: "https://burnbuddy-d68c2-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -36,21 +39,25 @@
             appId: "1:519617766080:web:ef9c04ea8e3d4d8c218325"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        function sendCommand(cmd) {
-            console.log("發送指令:", cmd);
-            set(ref(db, 'command'), cmd).then(() => {
-                console.log("發送成功！");
-            }).catch((error) => {
-                alert("發送失敗，請檢查網路或權限: " + error.message);
-            });
+        // 初始化
+        try {
+            firebase.initializeApp(firebaseConfig);
+            document.getElementById('msg').innerText = "✅ 已連線到電視";
+        } catch (e) {
+            document.getElementById('msg').innerText = "❌ 連線失敗";
         }
 
-        document.getElementById('playBtn').onclick = () => sendCommand('play');
-        document.getElementById('pauseBtn').onclick = () => sendCommand('pause');
-        document.getElementById('kuiBtn').onclick = () => sendCommand('kuikui');
+        var database = firebase.database();
+
+        function sendCommand(cmd) {
+            database.ref('command').set(cmd, function(error) {
+                if (error) {
+                    alert('發送失敗！');
+                } else {
+                    console.log('指令已發送: ' + cmd);
+                }
+            });
+        }
     </script>
 </body>
 </html>
