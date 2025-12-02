@@ -7,28 +7,73 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { background: #eee; text-align: center; font-family: sans-serif; padding: 20px; }
-        h2 { margin-bottom: 30px; color: #333; }
-        button { width: 100%; padding: 25px; font-size: 1.5rem; margin: 10px 0; border: none; border-radius: 15px; cursor: pointer; transition: 0.1s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        body { background: #f0f2f5; text-align: center; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
+        h2 { margin-bottom: 20px; color: #333; font-weight: 700; }
+        
+        /* 播放控制區 */
+        .control-panel { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        button { 
+            width: 100%; padding: 20px; font-size: 1.2rem; margin: 8px 0; border: none; border-radius: 12px; 
+            cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; 
+            font-weight: 600; display: flex; align-items: center; justify-content: center;
+        }
         button:active { transform: scale(0.96); }
-        .btn-play { background: #4CAF50; color: white; }
-        .btn-pause { background: #f44336; color: white; }
-        .btn-kui { background: #FFC107; color: black; font-weight: bold; border: 3px solid #eebb00; margin-top: 30px; }
+        
+        .btn-play { background: #34c759; color: white; box-shadow: 0 4px 10px rgba(52, 199, 89, 0.3); }
+        .btn-pause { background: #ff3b30; color: white; box-shadow: 0 4px 10px rgba(255, 59, 48, 0.3); }
+        .btn-kui { 
+            background: linear-gradient(135deg, #ffcc00, #ff9500); 
+            color: white; font-size: 1.4rem; padding: 25px;
+            margin-top: 15px; border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(255, 149, 0, 0.4);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* 點歌機區塊 */
+        .jukebox { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .jukebox h3 { margin-top: 0; color: #555; font-size: 1rem; }
+        
+        .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .btn-preset { background: #e9e9eb; color: #333; font-size: 0.9rem; padding: 15px; font-weight: normal; }
+        
+        .url-input-group { display: flex; gap: 10px; }
+        input { 
+            flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; outline: none; font-size: 1rem;
+        }
+        input:focus { border-color: #007aff; }
+        .btn-load { width: auto; background: #007aff; color: white; margin: 0; padding: 0 20px; }
+
     </style>
 </head>
 <body>
 
-    <h2>📱 BurnBuddy 遙控器</h2>
+    <h2>📱 遙控器 V2.0</h2>
     
-    <button class="btn-play" onclick="sendCommand('play')">▶️ 開始運動</button>
-    <button class="btn-pause" onclick="sendCommand('pause')">⏸️ 暫停休息</button>
-    
-    <button class="btn-kui" onclick="sendCommand('kuikui')">⭐ 奎奎獎勵鈕</button>
+    <div class="control-panel">
+        <button class="btn-play" onclick="sendCommand('play')">▶️ 開始運動</button>
+        <button class="btn-pause" onclick="sendCommand('pause')">⏸️ 暫停休息</button>
+        <button class="btn-kui" onclick="sendCommand('kuikui')">⭐ 奎奎獎勵鈕 ⭐</button>
+    </div>
 
-    <div id="msg" style="margin-top:20px; color: gray;">連線中...</div>
+    <div class="jukebox">
+        <h3>⚡ 快速切換影片</h3>
+        <div class="preset-grid">
+            <button class="btn-preset" onclick="changeVideo('Fj5b-O6g4rU')">🔥 Coffee 全身燃脂</button>
+            <button class="btn-preset" onclick="changeVideo('1f8yoFFdkcY')">🍫 帕梅拉 10分腹肌</button>
+            <button class="btn-preset" onclick="changeVideo('sTANio_2E0Q')">🧘 Coffee 舒緩伸展</button>
+            <button class="btn-preset" onclick="changeVideo('AnH6D5q4j2I')">💃 30分鐘有氧操</button>
+        </div>
+
+        <div class="url-input-group">
+            <input type="text" id="videoUrl" placeholder="貼上 YouTube 網址">
+            <button class="btn-load" onclick="parseAndLoad()">播放</button>
+        </div>
+    </div>
+
+    <div id="msg" style="margin-top:20px; color: #999; font-size: 0.8rem;">連線中...</div>
 
     <script>
-        // --- Firebase 設定 (跟電視端一模一樣) ---
         var firebaseConfig = {
             apiKey: "AIzaSyDjWvhVo6EM0cW_TDYVehzXcuovuU0lqOs",
             authDomain: "burnbuddy-d68c2.firebaseapp.com",
@@ -39,24 +84,51 @@
             appId: "1:519617766080:web:ef9c04ea8e3d4d8c218325"
         };
 
-        // 初始化
         try {
             firebase.initializeApp(firebaseConfig);
-            document.getElementById('msg').innerText = "✅ 已連線到電視";
+            document.getElementById('msg').innerText = "✅ 系統連線正常";
         } catch (e) {
             document.getElementById('msg').innerText = "❌ 連線失敗";
         }
 
         var database = firebase.database();
 
+        // 震動功能 (如果手機支援)
+        function vibrate() {
+            if (navigator.vibrate) {
+                navigator.vibrate(50); // 震動 50 毫秒 (輕輕一下)
+            }
+        }
+
         function sendCommand(cmd) {
-            database.ref('command').set(cmd, function(error) {
-                if (error) {
-                    alert('發送失敗！');
-                } else {
-                    console.log('指令已發送: ' + cmd);
-                }
-            });
+            vibrate(); // 觸發震動
+            database.ref('command').set(cmd);
+        }
+
+        // 切換影片 (直接傳送 ID)
+        function changeVideo(videoId) {
+            vibrate();
+            if(!videoId) return;
+            database.ref('videoId').set(videoId); // 寫入新的 ID 到資料庫
+            alert("已切換影片！");
+        }
+
+        // 解析網址並播放
+        function parseAndLoad() {
+            var url = document.getElementById('videoUrl').value;
+            if (!url) return;
+            
+            // 簡單的正規表達式抓取 YouTube ID
+            var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+            var match = url.match(regExp);
+            
+            if (match && match[7].length == 11) {
+                var videoId = match[7];
+                changeVideo(videoId);
+                document.getElementById('videoUrl').value = ''; // 清空輸入框
+            } else {
+                alert("網址格式錯誤，請確認是 YouTube 連結喔！");
+            }
         }
     </script>
 </body>
