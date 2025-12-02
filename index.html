@@ -7,47 +7,61 @@
         body { background: #222; color: white; text-align: center; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; }
         h1 { font-size: 3rem; }
         #status { font-size: 2rem; color: #ffeb3b; margin-top: 20px; }
-        #video-container { width: 80%; margin: 0 auto; background: #000; height: 300px; display: flex; align-items: center; justify-content: center; }
+        #video-container { width: 80%; margin: 0 auto; background: #000; height: 300px; display: flex; align-items: center; justify-content: center; border-radius: 15px; border: 2px solid #444; }
     </style>
 </head>
 <body>
 
     <h1>BurnBuddy 🔥 客廳燃脂中</h1>
     <div id="video-container">
-        <h2>等待指令中...</h2>
+        <h2 id="msg">等待手機指令...</h2>
     </div>
     <div id="status">目前狀態：待機</div>
 
     <script type="module">
-        // ★★★ 請把你剛剛在 Firebase 複製的那段程式碼貼在下面取代這裡 ★★★
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+        // 引用最新版 (12.6.0) 的 Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
+        // 你的專屬設定 (我直接幫你填好了)
         const firebaseConfig = {
-            // 這裡填入你的 apiKey, authDomain, databaseURL 等等...
-            // 記得要確保有 databaseURL 這一行喔！
+            apiKey: "AIzaSyDjWvhVo6EM0cW_TDYVehzXcuovuU0lqOs",
+            authDomain: "burnbuddy-d68c2.firebaseapp.com",
+            databaseURL: "https://burnbuddy-d68c2-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "burnbuddy-d68c2",
+            storageBucket: "burnbuddy-d68c2.firebasestorage.app",
+            messagingSenderId: "519617766080",
+            appId: "1:519617766080:web:ef9c04ea8e3d4d8c218325"
         };
 
         // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // 監聽資料庫變化 (這是接收端最重要的一行！)
+        // 監聽資料庫變化
         const statusRef = ref(db, 'command');
         onValue(statusRef, (snapshot) => {
             const data = snapshot.val();
             const display = document.getElementById('status');
             const container = document.getElementById('video-container');
+            const msg = document.getElementById('msg');
             
+            console.log("收到指令:", data); // 在 Console 顯示收到的指令方便除錯
+
             if (data === 'play') {
-                display.innerText = "狀態：開始燃脂！(播放影片)";
+                display.innerText = "狀態：開始燃脂！GO GO GO！";
                 container.style.backgroundColor = "green";
+                msg.innerText = "▶️ 播放中";
             } else if (data === 'pause') {
                 display.innerText = "狀態：休息一下 (暫停)";
                 container.style.backgroundColor = "red";
+                msg.innerText = "⏸️ 已暫停";
             } else if (data === 'kuikui') {
-                display.innerText = "狀態：奎奎好棒！(噴出星星特效)";
+                display.innerText = "狀態：奎奎好棒！(🌟星星特效🌟)";
                 container.style.backgroundColor = "gold";
+                msg.innerText = "🌟 獎勵時間 🌟";
+                // 3秒後自動變回原狀
+                setTimeout(() => { container.style.backgroundColor = "#000"; }, 3000);
             }
         });
     </script>
