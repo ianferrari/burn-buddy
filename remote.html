@@ -10,7 +10,6 @@
         body { background: #f0f2f5; text-align: center; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
         h2 { margin-bottom: 20px; color: #333; font-weight: 700; }
         
-        /* 播放控制區 */
         .control-panel { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
         
         button { 
@@ -30,39 +29,38 @@
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
-        /* 點歌機區塊 */
         .jukebox { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .jukebox h3 { margin-top: 0; color: #555; font-size: 1rem; }
         
         .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .btn-preset { background: #e9e9eb; color: #333; font-size: 0.9rem; padding: 15px; font-weight: normal; }
+        .btn-preset { background: #e9e9eb; color: #333; font-size: 0.95rem; padding: 15px; font-weight: normal; line-height: 1.3; }
         
         .url-input-group { display: flex; gap: 10px; }
-        input { 
-            flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; outline: none; font-size: 1rem;
-        }
+        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; outline: none; font-size: 1rem; }
         input:focus { border-color: #007aff; }
         .btn-load { width: auto; background: #007aff; color: white; margin: 0; padding: 0 20px; }
-
     </style>
 </head>
 <body>
 
-    <h2>📱 遙控器 V2.0</h2>
+    <h2>📱 遙控器 V2.1</h2>
     
     <div class="control-panel">
         <button class="btn-play" onclick="sendCommand('play')">▶️ 開始運動</button>
         <button class="btn-pause" onclick="sendCommand('pause')">⏸️ 暫停休息</button>
-        <button class="btn-kui" onclick="sendCommand('kuikui')">⭐ 奎奎獎勵鈕 ⭐</button>
+        <button class="btn-kui" onclick="sendCommand('kuikui')">⭐ 奎奎好棒 (有聲音!)</button>
     </div>
 
     <div class="jukebox">
-        <h3>⚡ 快速切換影片</h3>
+        <h3>⚡ 快速切換 (台灣/華語精選)</h3>
         <div class="preset-grid">
-            <button class="btn-preset" onclick="changeVideo('Fj5b-O6g4rU')">🔥 Coffee 全身燃脂</button>
-            <button class="btn-preset" onclick="changeVideo('1f8yoFFdkcY')">🍫 帕梅拉 10分腹肌</button>
-            <button class="btn-preset" onclick="changeVideo('sTANio_2E0Q')">🧘 Coffee 舒緩伸展</button>
-            <button class="btn-preset" onclick="changeVideo('AnH6D5q4j2I')">💃 30分鐘有氧操</button>
+            <button class="btn-preset" onclick="changeVideo('KJrm8eVs1pE')">🔥 Chuckmeo<br>10分鐘燃脂</button>
+            
+            <button class="btn-preset" onclick="changeVideo('A0bq5Jpc0OY')">🧘 Coffee<br>15分鐘全身</button>
+            
+            <button class="btn-preset" onclick="changeVideo('aS7EXMG2bOo')">🥊 May Fit<br>30分鐘拳擊有氧</button>
+            
+            <button class="btn-preset" onclick="changeVideo('fNfQeO3BVGM')">💪 Coffee<br>20分鐘爆汗</button>
         </div>
 
         <div class="url-input-group">
@@ -87,48 +85,34 @@
         try {
             firebase.initializeApp(firebaseConfig);
             document.getElementById('msg').innerText = "✅ 系統連線正常";
-        } catch (e) {
-            document.getElementById('msg').innerText = "❌ 連線失敗";
-        }
+        } catch (e) { document.getElementById('msg').innerText = "❌ 連線失敗"; }
 
         var database = firebase.database();
 
-        // 震動功能 (如果手機支援)
         function vibrate() {
-            if (navigator.vibrate) {
-                navigator.vibrate(50); // 震動 50 毫秒 (輕輕一下)
-            }
+            if (navigator.vibrate) { navigator.vibrate(50); }
         }
 
         function sendCommand(cmd) {
-            vibrate(); // 觸發震動
+            vibrate(); 
             database.ref('command').set(cmd);
         }
 
-        // 切換影片 (直接傳送 ID)
         function changeVideo(videoId) {
             vibrate();
             if(!videoId) return;
-            database.ref('videoId').set(videoId); // 寫入新的 ID 到資料庫
-            alert("已切換影片！");
+            database.ref('videoId').set(videoId);
         }
 
-        // 解析網址並播放
         function parseAndLoad() {
             var url = document.getElementById('videoUrl').value;
             if (!url) return;
-            
-            // 簡單的正規表達式抓取 YouTube ID
             var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
             var match = url.match(regExp);
-            
             if (match && match[7].length == 11) {
-                var videoId = match[7];
-                changeVideo(videoId);
-                document.getElementById('videoUrl').value = ''; // 清空輸入框
-            } else {
-                alert("網址格式錯誤，請確認是 YouTube 連結喔！");
-            }
+                changeVideo(match[7]);
+                document.getElementById('videoUrl').value = ''; 
+            } else { alert("網址格式錯誤"); }
         }
     </script>
 </body>
