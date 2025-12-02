@@ -2,8 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>BurnBuddy TV (Debug Mode)</title>
+    <title>BurnBuddy TV (Legacy Mode)</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
         body { 
             background: #1a1a1a; 
@@ -19,58 +23,32 @@
             overflow: hidden; 
         }
         
-        /* --- 除錯視窗 (電視專用) --- */
         #debug-console {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 150px;
-            background: rgba(0,0,0,0.9);
-            color: #0f0; /* 駭客綠 */
-            font-family: monospace;
-            font-size: 14px;
-            text-align: left;
-            padding: 10px;
-            overflow-y: scroll;
-            z-index: 99999;
-            border-top: 2px solid #0f0;
-            display: block; /* 預設顯示，修好後再關掉 */
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 120px;
+            background: rgba(0,0,0,0.9); color: #0f0; font-family: monospace;
+            font-size: 16px; text-align: left; padding: 10px; overflow-y: scroll;
+            z-index: 99999; border-top: 2px solid #0f0;
         }
 
         #tv-frame {
-            position: relative;
-            width: 90%;
-            height: 60vh;       
-            background: #000;
-            border: 5px solid #333;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 0 auto;
+            position: relative; width: 90%; height: 60vh;       
+            background: #000; border: 5px solid #333; border-radius: 10px;
+            overflow: hidden; margin: 0 auto;
         }
 
         #player { width: 100%; height: 100%; }
 
         #start-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0,0,0,0.85); 
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9000;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9000;
         }
 
         #start-btn {
-            padding: 20px 40px;
-            font-size: 2rem;
-            font-weight: bold;
-            background: #ff4081;
-            color: white;
-            border: 4px solid white;
-            border-radius: 50px;
-            animation: pulse 2s infinite;
+            padding: 20px 40px; font-size: 2rem; font-weight: bold;
+            background: #ff4081; color: white; border: 4px solid white;
+            border-radius: 50px; animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
@@ -78,55 +56,44 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
-
-        #status-bar {
-            margin-top: 20px;
-            font-size: 1.5rem;
-            color: #ccc;
-        }
+        #status-bar { margin-top: 20px; font-size: 1.5rem; color: #ccc; }
     </style>
 </head>
 <body>
 
-    <h1 style="margin: 10px;">🔥 BurnBuddy 除錯模式</h1>
+    <h1 style="margin: 10px;">🔥 BurnBuddy (相容模式)</h1>
     
     <div id="tv-frame">
         <div id="player"></div>
     </div>
 
-    <div id="start-overlay">
+    <div id="start-overlay" onclick="tryUnlock()">
         <button id="start-btn">請按遙控器「任意鍵」</button>
-        <p style="margin-top: 20px; color: #ccc;">(音量鍵、數字鍵、上下左右皆可)</p>
+        <p style="margin-top: 20px; color: #ccc;">(如果按鍵沒反應，請用游標點這裡)</p>
     </div>
 
     <div id="status-bar">系統載入中...</div>
-
     <div id="debug-console">系統日誌:<br></div>
 
-    <script type="module">
-        // --- 1. 建立錯誤捕捉機制 (最重要！) ---
-        const debugBox = document.getElementById('debug-console');
+    <script>
+        // --- 日誌系統 (優先執行) ---
+        var debugBox = document.getElementById('debug-console');
         function log(msg) {
-            const time = new Date().toLocaleTimeString();
-            debugBox.innerHTML = `[${time}] ${msg}<br>` + debugBox.innerHTML;
+            var time = new Date().toLocaleTimeString();
+            debugBox.innerHTML = "[" + time + "] " + msg + "<br>" + debugBox.innerHTML;
         }
-        
-        // 捕捉所有全域錯誤
+
+        // 捕捉全域錯誤
         window.onerror = function(message, source, lineno, colno, error) {
-            log(`❌ 錯誤: ${message}`);
-            // 如果看到這裡有紅字，拍照給我看！
+            log("❌ 錯誤: " + message);
         };
 
-        log("🚀 系統開始啟動...");
+        log("🚀 系統啟動 (相容模式)...");
 
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
-
-        // --- 2. Firebase 設定 (請確保這裡正確) ---
-        const firebaseConfig = {
+        // --- Firebase 設定 (v8 寫法) ---
+        var firebaseConfig = {
             apiKey: "AIzaSyDjWvhVo6EM0cW_TDYVehzXcuovuU0lqOs",
             authDomain: "burnbuddy-d68c2.firebaseapp.com",
-            // ★★★ 這裡是你之前報錯的地方，我幫你填好了 ★★★
             databaseURL: "https://burnbuddy-d68c2-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "burnbuddy-d68c2",
             storageBucket: "burnbuddy-d68c2.firebasestorage.app",
@@ -134,44 +101,48 @@
             appId: "1:519617766080:web:ef9c04ea8e3d4d8c218325"
         };
 
-        let app, db;
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getDatabase(app);
-            log("✅ Firebase 連線成功！");
-        } catch (e) {
-            log("❌ Firebase 連線失敗: " + e.message);
-        }
-
-        const overlay = document.getElementById('start-overlay');
-        const statusDisplay = document.getElementById('status-bar');
-        let player;
-        let isUnlocked = false;
-
-        // --- 3. 萬用按鍵監聽 (隨便按都會觸發) ---
-        window.addEventListener('keydown', (e) => {
-            log(`收到按鍵訊號: Code=${e.keyCode}, Key=${e.key}`);
-            unlockAudio();
-        });
-        
-        // 為了保險，連觸控和點擊也加上去
-        window.addEventListener('click', () => { log("收到點擊訊號"); unlockAudio(); });
-        window.addEventListener('touchstart', () => { log("收到觸控訊號"); unlockAudio(); });
-
-        function unlockAudio() {
-            if (isUnlocked) return;
-            isUnlocked = true;
-            overlay.style.display = 'none';
-            log("🔓 系統解鎖！準備播放...");
-            statusDisplay.innerText = "等待手機指令...";
-            
-            if(player && player.playVideo) {
-                player.playVideo();
-                setTimeout(() => player.pauseVideo(), 300);
+        // 檢查 Firebase 是否載入成功
+        if (typeof firebase === 'undefined') {
+            log("❌ 嚴重錯誤: 電視無法載入 Firebase！請檢查網路。");
+        } else {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                log("✅ Firebase 連線成功 (v8)！");
+            } catch (e) {
+                log("❌ 初始化失敗: " + e.message);
             }
         }
 
-        // --- 4. YouTube API ---
+        var database = firebase.database();
+        var player;
+        var isUnlocked = false;
+        var overlay = document.getElementById('start-overlay');
+        var statusDisplay = document.getElementById('status-bar');
+
+        // --- 解鎖邏輯 ---
+        function tryUnlock() {
+            if (isUnlocked) return;
+            isUnlocked = true;
+            overlay.style.display = 'none';
+            log("🔓 畫面解鎖！");
+            statusDisplay.innerText = "等待手機指令...";
+            
+            // 嘗試播放
+            if (player && typeof player.playVideo === 'function') {
+                player.playVideo();
+                setTimeout(function() { player.pauseVideo(); }, 500);
+            }
+        }
+
+        // --- 萬用監聽 (相容舊版事件) ---
+        document.addEventListener('keydown', function(e) {
+            log("按鍵: " + e.keyCode);
+            tryUnlock();
+        });
+        document.addEventListener('click', tryUnlock);
+        document.addEventListener('touchstart', tryUnlock);
+
+        // --- YouTube API ---
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -184,7 +155,7 @@
                 playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0 },
                 events: {
                     'onReady': onPlayerReady,
-                    'onError': (e) => log("YT Error: " + e.data)
+                    'onError': function(e) { log("YT Error: " + e.data); }
                 }
             });
         };
@@ -192,27 +163,29 @@
         function onPlayerReady(event) {
             log("📺 播放器準備就緒");
             
-            // 只有在資料庫連線成功才監聽
-            if(db) {
-                const statusRef = ref(db, 'command');
-                onValue(statusRef, (snapshot) => {
-                    const cmd = snapshot.val();
-                    log("收到雲端指令: " + cmd);
-                    
-                    if (isUnlocked) {
-                        if (cmd === 'play') player.playVideo();
-                        else if (cmd === 'pause') player.pauseVideo();
-                        else if (cmd === 'kuikui') {
-                            fireConfetti();
-                            log("特效發射！");
-                        }
-                    } else {
-                        log("收到指令但尚未解鎖畫面");
+            // 監聽 Firebase 資料
+            var statusRef = database.ref('command');
+            statusRef.on('value', function(snapshot) {
+                var cmd = snapshot.val();
+                log("收到指令: " + cmd);
+                
+                if (isUnlocked) {
+                    if (cmd === 'play') {
+                        player.playVideo();
+                        statusDisplay.innerText = "▶️ 播放中";
+                    } else if (cmd === 'pause') {
+                        player.pauseVideo();
+                        statusDisplay.innerText = "⏸️ 已暫停";
+                    } else if (cmd === 'kuikui') {
+                        fireConfetti();
+                        statusDisplay.innerText = "🌟 奎奎好棒！ 🌟";
                     }
-                });
-            }
+                } else {
+                    log("指令略過 (尚未解鎖)");
+                }
+            });
         }
-        
+
         function fireConfetti() {
              var count = 200;
              var defaults = { origin: { y: 0.7 } };
