@@ -3,27 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <title>BurnBuddy TV</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        body { background: #222; color: white; text-align: center; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; }
-        h1 { font-size: 3rem; }
-        #status { font-size: 2rem; color: #ffeb3b; margin-top: 20px; }
-        #video-container { width: 80%; margin: 0 auto; background: #000; height: 300px; display: flex; align-items: center; justify-content: center; border-radius: 15px; border: 2px solid #444; }
+        body { background: #1a1a1a; color: white; text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        
+        h1 { margin-bottom: 20px; text-shadow: 2px 2px 4px #000; }
+        
+        /* 電視框框造型 */
+        #tv-frame {
+            position: relative;
+            width: 80%;
+            max-width: 900px;
+            aspect-ratio: 16/9;
+            background: #000;
+            border: 10px solid #333;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        /* 讓 YouTube 填滿框框 */
+        #player { width: 100%; height: 100%; }
+
+        /* 狀態文字 */
+        #status-bar {
+            margin-top: 30px;
+            padding: 10px 20px;
+            background: #333;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            color: #ccc;
+            transition: all 0.3s;
+        }
+        
+        /* 奎奎模式的特效字 */
+        .reward-mode {
+            color: #FFD700 !important; /* 金色 */
+            transform: scale(1.2);
+            font-weight: bold;
+            text-shadow: 0 0 10px #FFD700;
+        }
     </style>
 </head>
 <body>
 
-    <h1>BurnBuddy 🔥 客廳燃脂中</h1>
-    <div id="video-container">
-        <h2 id="msg">等待手機指令...</h2>
+    <h1>🔥 BurnBuddy 客廳燃脂中</h1>
+    
+    <div id="tv-frame">
+        <div id="player"></div>
     </div>
-    <div id="status">目前狀態：待機</div>
+
+    <div id="status-bar">等待指令...</div>
 
     <script type="module">
-        // 引用最新版 (12.6.0) 的 Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-        // 你的專屬設定 (我直接幫你填好了)
+        // 你的 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyDjWvhVo6EM0cW_TDYVehzXcuovuU0lqOs",
             authDomain: "burnbuddy-d68c2.firebaseapp.com",
@@ -34,36 +70,99 @@
             appId: "1:519617766080:web:ef9c04ea8e3d4d8c218325"
         };
 
-        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const statusDisplay = document.getElementById('status-bar');
 
-        // 監聽資料庫變化
-        const statusRef = ref(db, 'command');
-        onValue(statusRef, (snapshot) => {
-            const data = snapshot.val();
-            const display = document.getElementById('status');
-            const container = document.getElementById('video-container');
-            const msg = document.getElementById('msg');
+        // --- YouTube API 設定 ---
+        let player;
+        // 這裡可以換成任何你老婆想跳的影片 ID (例如: 帕梅拉的影片)
+        // 目前是用 Coffee 林芊妤的影片當範例
+        const videoId = 'Fj5b-O6g4rU'; 
+
+        // 載入 YouTube IFrame API
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        // 當 YouTube API 準備好時，建立播放器
+        window.onYouTubeIframeAPIReady = function() {
+            player = new YT.Player('player', {
+                videoId: videoId,
+                playerVars: {
+                    'playsinline': 1,
+                    'controls': 0, // 隱藏 YouTube原本的控制列(強迫用手機控)
+                    'rel': 0       // 播完不顯示推薦影片
+                },
+                events: {
+                    'onReady': onPlayerReady
+                }
+            });
+        };
+
+        // 當播放器準備好後，開始監聽 Firebase
+        function onPlayerReady(event) {
+            console.log("YouTube Player 準備就緒！");
             
-            console.log("收到指令:", data); // 在 Console 顯示收到的指令方便除錯
+            // 監聽 Firebase 指令
+            const statusRef = ref(db, 'command');
+            onValue(statusRef, (snapshot) => {
+                const cmd = snapshot.val();
+                console.log("收到指令:", cmd);
 
-            if (data === 'play') {
-                display.innerText = "狀態：開始燃脂！GO GO GO！";
-                container.style.backgroundColor = "green";
-                msg.innerText = "▶️ 播放中";
-            } else if (data === 'pause') {
-                display.innerText = "狀態：休息一下 (暫停)";
-                container.style.backgroundColor = "red";
-                msg.innerText = "⏸️ 已暫停";
-            } else if (data === 'kuikui') {
-                display.innerText = "狀態：奎奎好棒！(🌟星星特效🌟)";
-                container.style.backgroundColor = "gold";
-                msg.innerText = "🌟 獎勵時間 🌟";
-                // 3秒後自動變回原狀
-                setTimeout(() => { container.style.backgroundColor = "#000"; }, 3000);
+                if (cmd === 'play') {
+                    player.playVideo(); // 真的播放影片
+                    updateStatus("▶️ 燃脂開始！", false);
+                } 
+                else if (cmd === 'pause') {
+                    player.pauseVideo(); // 真的暫停影片
+                    updateStatus("⏸️ 休息一下", false);
+                } 
+                else if (cmd === 'kuikui') {
+                    // 奎奎獎勵：不影響影片播放，只放特效
+                    updateStatus("🌟 奎奎好棒！超級星星！ 🌟", true);
+                    fireConfetti(); // 發射彩帶
+                    
+                    // 3秒後恢復文字
+                    setTimeout(() => { 
+                        // 判斷目前影片狀態來決定文字
+                        let state = player.getPlayerState();
+                        if(state === 1) updateStatus("▶️ 燃脂開始！", false);
+                        else updateStatus("⏸️ 休息一下", false);
+                    }, 3000);
+                }
+            });
+        }
+
+        function updateStatus(text, isReward) {
+            statusDisplay.innerText = text;
+            if (isReward) {
+                statusDisplay.classList.add('reward-mode');
+            } else {
+                statusDisplay.classList.remove('reward-mode');
             }
-        });
+        }
+
+        // --- 彩帶特效函式 ---
+        function fireConfetti() {
+            var count = 200;
+            var defaults = {
+                origin: { y: 0.7 }
+            };
+
+            function fire(particleRatio, opts) {
+                confetti(Object.assign({}, defaults, opts, {
+                    particleCount: Math.floor(count * particleRatio)
+                }));
+            }
+
+            fire(0.25, { spread: 26, startVelocity: 55 });
+            fire(0.2, { spread: 60 });
+            fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+            fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+            fire(0.1, { spread: 120, startVelocity: 45 });
+        }
     </script>
 </body>
 </html>
