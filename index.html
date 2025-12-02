@@ -9,54 +9,42 @@
 
     <style>
         body { 
-            background: #121212; /* 深色質感背景 */
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
             color: white; 
             text-align: center; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-            overflow: hidden; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            height: 100vh; margin: 0; overflow: hidden; 
         }
         
         h1 { 
-            margin-bottom: 25px; 
-            font-weight: 300; 
-            letter-spacing: 2px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            margin-bottom: 25px; font-weight: 300; letter-spacing: 2px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 2.5rem;
         }
         
-        /* 電視框框 */
         #tv-frame {
             position: relative; width: 90%; height: 70vh;       
-            background: #000; 
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            overflow: hidden; margin: 0 auto;
+            background: #000; border-radius: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            overflow: hidden; margin: 0 auto; border: 1px solid #333;
         }
 
         #player { width: 100%; height: 100%; }
 
-        /* 全螢幕解鎖遮罩 */
         #start-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.85); 
-            backdrop-filter: blur(5px); /* 磨砂玻璃效果 */
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
             display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 9000;
-            transition: opacity 0.5s;
+            transition: opacity 0.5s ease;
         }
 
         #start-btn {
-            padding: 25px 50px; font-size: 2rem; font-weight: bold;
-            background: linear-gradient(45deg, #ff4081, #ff80ab);
-            color: white; border: none;
-            border-radius: 50px; 
-            box-shadow: 0 5px 20px rgba(255, 64, 129, 0.4);
-            animation: pulse 2s infinite;
+            padding: 25px 60px; font-size: 2rem; font-weight: bold;
+            background: linear-gradient(45deg, #ff4081, #f50057);
+            color: white; border: none; border-radius: 50px; 
+            box-shadow: 0 10px 30px rgba(245, 0, 87, 0.4);
+            animation: pulse 2s infinite; cursor: pointer;
         }
 
         @keyframes pulse {
@@ -66,19 +54,13 @@
         }
 
         #status-bar { 
-            margin-top: 20px; 
-            font-size: 1.2rem; 
-            color: #888; 
-            font-weight: 300;
+            margin-top: 25px; font-size: 1.5rem; color: #888; font-weight: 300; min-height: 1.5em;
         }
         
-        /* 奎奎獎勵模式的特效字 */
         .reward-text {
-            color: #FFD700 !important;
-            font-weight: bold;
-            transform: scale(1.2);
-            transition: all 0.3s;
-            text-shadow: 0 0 15px #FFD700;
+            color: #FFD700 !important; font-weight: bold;
+            transform: scale(1.2); transition: all 0.3s;
+            text-shadow: 0 0 20px #FFD700;
         }
     </style>
 </head>
@@ -92,17 +74,12 @@
 
     <div id="start-overlay" onclick="tryUnlock()">
         <button id="start-btn">按遙控器「任意鍵」啟用</button>
-        <p style="margin-top: 25px; color: #bbb; letter-spacing: 1px;">準備好開始運動了嗎？</p>
+        <p style="margin-top: 30px; color: #bbb; letter-spacing: 1px; font-size: 1.2rem;">準備好開始運動了嗎？</p>
     </div>
 
     <div id="status-bar">系統載入中...</div>
 
     <script>
-        // --- 核心邏輯 (已移除除錯視窗代碼) ---
-        
-        // 簡單的 console log 方便你未來按 F12 檢查，但不會顯示在電視上
-        function log(msg) { console.log("[BurnBuddy]", msg); }
-
         var firebaseConfig = {
             apiKey: "AIzaSyDjWvhVo6EM0cW_TDYVehzXcuovuU0lqOs",
             authDomain: "burnbuddy-d68c2.firebaseapp.com",
@@ -113,41 +90,33 @@
             appId: "1:519617766080:web:ef9c04ea8e3d4d8c218325"
         };
 
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-            log("Firebase 連線成功");
-        } catch (e) {
-            log("連線失敗: " + e.message);
-        }
+        try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch (e) {}
 
         var database = firebase.database();
         var player;
         var isUnlocked = false;
         var overlay = document.getElementById('start-overlay');
         var statusDisplay = document.getElementById('status-bar');
+        
+        // 預設影片 (如果資料庫沒東西時用這個)
+        var currentVideoId = 'KJrm8eVs1pE'; 
 
         function tryUnlock() {
             if (isUnlocked) return;
             isUnlocked = true;
-            overlay.style.opacity = '0'; // 淡出動畫
+            overlay.style.opacity = '0';
             setTimeout(function(){ overlay.style.display = 'none'; }, 500);
-            
             statusDisplay.innerText = "手機連線中...請操作手機";
-            
             if (player && typeof player.playVideo === 'function') {
                 player.playVideo();
                 setTimeout(function() { player.pauseVideo(); }, 500);
             }
         }
 
-        // 萬能監聽
         document.addEventListener('keydown', function(e) { tryUnlock(); });
         document.addEventListener('click', tryUnlock);
         document.addEventListener('touchstart', tryUnlock);
 
-        // YouTube API
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -155,18 +124,16 @@
 
         window.onYouTubeIframeAPIReady = function() {
             player = new YT.Player('player', {
-                videoId: 'KJrm8eVs1pE',
+                videoId: currentVideoId,
                 playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0 },
-                events: {
-                    'onReady': onPlayerReady
-                }
+                events: { 'onReady': onPlayerReady }
             });
         };
 
         function onPlayerReady(event) {
+            // 1. 監聽指令 (Play/Pause/KuiKui)
             database.ref('command').on('value', function(snapshot) {
                 var cmd = snapshot.val();
-                
                 if (isUnlocked) {
                     if (cmd === 'play') {
                         player.playVideo();
@@ -177,10 +144,21 @@
                     } else if (cmd === 'kuikui') {
                         fireConfetti();
                         updateStatus("🌟 奎奎好棒！超級星星！ 🌟", true);
-                        // 3秒後恢復文字
-                        setTimeout(function(){
-                            updateStatus("▶️ 繼續燃脂！", false);
-                        }, 3000);
+                        setTimeout(function(){ updateStatus("▶️ 繼續燃脂！", false); }, 3000);
+                    }
+                }
+            });
+
+            // 2. ★★★ 新增：監聽影片 ID 切換 ★★★
+            database.ref('videoId').on('value', function(snapshot) {
+                var newId = snapshot.val();
+                // 如果有收到新 ID，而且跟現在的不一樣，就切換
+                if (newId && newId !== currentVideoId) {
+                    currentVideoId = newId;
+                    console.log("切換影片:", newId);
+                    if(player && player.loadVideoById) {
+                        player.loadVideoById(newId); // 切換影片
+                        if(isUnlocked) updateStatus("🔄 切換影片中...", false);
                     }
                 }
             });
