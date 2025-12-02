@@ -62,6 +62,15 @@
             transform: scale(1.2); transition: all 0.3s;
             text-shadow: 0 0 20px #FFD700;
         }
+
+        /* 🌟 超級星星特效 */
+        #big-star {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            font-size: 15rem; z-index: 8000; pointer-events: none;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 0 50px gold); opacity: 0;
+        }
+        .show-star { transform: translate(-50%, -50%) scale(1) !important; opacity: 1 !important; }
     </style>
 </head>
 <body>
@@ -71,10 +80,12 @@
     <div id="tv-frame">
         <div id="player"></div>
     </div>
+    
+    <div id="big-star">🌟</div>
 
     <div id="start-overlay" onclick="tryUnlock()">
         <button id="start-btn">按遙控器「任意鍵」啟用</button>
-        <p style="margin-top: 30px; color: #bbb; letter-spacing: 1px; font-size: 1.2rem;">準備好開始運動了嗎？</p>
+        <p style="margin-top: 30px; color: #bbb; letter-spacing: 1px; font-size: 1.2rem;">準備好開始運動了嗎？(並解鎖音效)</p>
     </div>
 
     <div id="status-bar">系統載入中...</div>
@@ -97,19 +108,61 @@
         var isUnlocked = false;
         var overlay = document.getElementById('start-overlay');
         var statusDisplay = document.getElementById('status-bar');
+        var bigStar = document.getElementById('big-star');
         
-        // 預設影片 (如果資料庫沒東西時用這個)
+        // 音效環境 (AudioContext)
+        var audioCtx;
+
+        // 預設影片：Chuckmeo 10分鐘 (你指定的這部)
         var currentVideoId = 'KJrm8eVs1pE'; 
 
         function tryUnlock() {
             if (isUnlocked) return;
             isUnlocked = true;
+            
+            // 啟動音效引擎
+            try {
+                var AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                playTone(600, 0.1); // 嗶一聲確認音效正常
+            } catch(e) { console.log("Audio Error", e); }
+
             overlay.style.opacity = '0';
             setTimeout(function(){ overlay.style.display = 'none'; }, 500);
             statusDisplay.innerText = "手機連線中...請操作手機";
+            
             if (player && typeof player.playVideo === 'function') {
                 player.playVideo();
                 setTimeout(function() { player.pauseVideo(); }, 500);
+            }
+        }
+
+        // --- 音效產生器 (不需要下載mp3) ---
+        function playTone(freq, duration) {
+            if (!audioCtx) return;
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playRewardSound() {
+            // 1. 發出「登登登」金幣聲
+            if(audioCtx) {
+                setTimeout(function() { playTone(800, 0.1); }, 0);
+                setTimeout(function() { playTone(1200, 0.1); }, 100);
+                setTimeout(function() { playTone(1600, 0.3); }, 200);
+            }
+            // 2. 語音說話 (瀏覽器內建)
+            if ('speechSynthesis' in window) {
+                var utterance = new SpeechSynthesisUtterance("奎奎好棒！超級星星！");
+                utterance.lang = 'zh-TW';
+                utterance.rate = 1.2; // 講快一點比較嗨
+                window.speechSynthesis.speak(utterance);
             }
         }
 
@@ -131,7 +184,6 @@
         };
 
         function onPlayerReady(event) {
-            // 1. 監聽指令 (Play/Pause/KuiKui)
             database.ref('command').on('value', function(snapshot) {
                 var cmd = snapshot.val();
                 if (isUnlocked) {
@@ -142,22 +194,29 @@
                         player.pauseVideo();
                         updateStatus("⏸️ 休息一下", false);
                     } else if (cmd === 'kuikui') {
+                        // 觸發組合技：彩帶 + 星星 + 音效 + 語音
                         fireConfetti();
+                        playRewardSound();
+                        
+                        // 顯示大星星
+                        bigStar.classList.add('show-star');
                         updateStatus("🌟 奎奎好棒！超級星星！ 🌟", true);
-                        setTimeout(function(){ updateStatus("▶️ 繼續燃脂！", false); }, 3000);
+                        
+                        // 3秒後恢復
+                        setTimeout(function(){ 
+                            bigStar.classList.remove('show-star');
+                            updateStatus("▶️ 繼續燃脂！", false); 
+                        }, 3000);
                     }
                 }
             });
 
-            // 2. ★★★ 新增：監聽影片 ID 切換 ★★★
             database.ref('videoId').on('value', function(snapshot) {
                 var newId = snapshot.val();
-                // 如果有收到新 ID，而且跟現在的不一樣，就切換
                 if (newId && newId !== currentVideoId) {
                     currentVideoId = newId;
-                    console.log("切換影片:", newId);
                     if(player && player.loadVideoById) {
-                        player.loadVideoById(newId); // 切換影片
+                        player.loadVideoById(newId);
                         if(isUnlocked) updateStatus("🔄 切換影片中...", false);
                     }
                 }
