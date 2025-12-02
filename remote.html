@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>BurnBuddy 遙控器</title>
+    <style>
+        body { background: #eee; text-align: center; font-family: sans-serif; padding: 20px; }
+        button { width: 100%; padding: 20px; font-size: 1.5rem; margin: 10px 0; border: none; border-radius: 10px; cursor: pointer; }
+        .btn-play { background: #4CAF50; color: white; }
+        .btn-pause { background: #f44336; color: white; }
+        .btn-kui { background: #FFC107; color: black; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>遙控器</h2>
+    <button class="btn-play" id="playBtn">開始運動 (Play)</button>
+    <button class="btn-pause" id="pauseBtn">暫停 (Pause)</button>
+    <br><br>
+    <button class="btn-kui" id="kuiBtn">奎奎獎勵鈕 (Star)</button>
+
+    <script type="module">
+        // ★★★ 這裡也要貼上跟上面一模一樣的 Firebase 設定 ★★★
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+        const firebaseConfig = {
+            // 填入一樣的 Config
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 定義按鈕功能
+        document.getElementById('playBtn').onclick = () => {
+            set(ref(db, 'command'), 'play'); // 寫入資料庫 'play'
+        };
+        document.getElementById('pauseBtn').onclick = () => {
+            set(ref(db, 'command'), 'pause'); // 寫入資料庫 'pause'
+        };
+        document.getElementById('kuiBtn').onclick = () => {
+            set(ref(db, 'command'), 'kuikui'); // 寫入資料庫 'kuikui'
+        };
+    </script>
+</body>
+</html>
