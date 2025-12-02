@@ -21,16 +21,13 @@
         
         h1 { margin-bottom: 20px; text-shadow: 2px 2px 4px #000; }
         
-        /* --- 電視框框 (修正版) --- */
+        /* 電視框框 */
         #tv-frame {
             position: relative;
-            width: 85%; /* 稍微加寬一點 */
+            width: 85%;
             max-width: 1000px;
-            
-            /* ★★★ 修正重點：強制設定高度，解決電視瀏覽器壓扁問題 ★★★ */
-            height: 65vh;       /* 佔據畫面高度的 65% */
-            min-height: 400px;  /* 最少要有 400px 高 */
-            
+            height: 65vh;       
+            min-height: 400px;  
             background: #000;
             border: 10px solid #333;
             border-radius: 20px;
@@ -41,28 +38,28 @@
 
         #player { width: 100%; height: 100%; }
 
-        /* --- 啟動遮罩 (加大按鈕版) --- */
+        /* --- 啟動遮罩 (全螢幕感應版) --- */
         #start-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); /* 背景深一點 */
+            position: fixed; /* 改成 Fixed，強制蓋住全螢幕 */
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); 
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            cursor: pointer;
-            z-index: 100; /* 確保在最上層 */
+            cursor: pointer; /* 讓滑鼠游標變手手 */
+            z-index: 9999; /* 最頂層 */
         }
 
         #start-btn {
-            padding: 30px 60px; /* 按鈕加大 */
-            font-size: 2.5rem;  /* 字體加大 */
+            padding: 30px 60px;
+            font-size: 2.5rem;
             font-weight: bold;
             background: #ff4081;
             color: white;
-            border: 4px solid white; /* 加白邊 */
+            border: 4px solid white;
             border-radius: 60px;
-            cursor: pointer;
+            pointer-events: none; /* 讓按鈕本身「不擋路」，點擊會穿透到背景 */
             box-shadow: 0 0 40px rgba(255, 64, 129, 0.6);
             animation: pulse 2s infinite;
         }
@@ -78,7 +75,7 @@
             padding: 15px 40px;
             background: #333;
             border-radius: 50px;
-            font-size: 1.8rem; /* 字體加大方便電視看 */
+            font-size: 1.8rem;
             color: #ccc;
             transition: all 0.3s;
         }
@@ -97,11 +94,11 @@
     
     <div id="tv-frame">
         <div id="player"></div>
-        
-        <div id="start-overlay" onclick="unlockAudio()">
-            <button id="start-btn">👆 點此啟用</button>
-            <p style="margin-top: 20px; color: #ccc; font-size: 1.2rem;">(點擊後即可使用手機遙控)</p>
-        </div>
+    </div>
+
+    <div id="start-overlay">
+        <button id="start-btn">👆 按遙控器 OK 鍵啟用</button>
+        <p style="margin-top: 20px; color: #ccc; font-size: 1.5rem;">(點擊畫面任意處皆可)</p>
     </div>
 
     <div id="status-bar">等待啟動...</div>
@@ -110,7 +107,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-        // 你的 Firebase 設定 (已確認正確)
         const firebaseConfig = {
             apiKey: "AIzaSyDjWvhVo6EM0cW_TDYVehzXcuovuU0lqOs",
             authDomain: "burnbuddy-d68c2.firebaseapp.com",
@@ -127,19 +123,40 @@
         const overlay = document.getElementById('start-overlay');
 
         let player;
-        const videoId = 'KJrm8eVs1pE'; // Coffee 林芊妤 10分鐘燃脂
+        const videoId = 'KJrm8eVs1pE'; 
+        let isUnlocked = false; // 標記是否已經解鎖
 
-        // 解鎖音效權限函式
+        // --- 萬能解鎖函式 ---
         window.unlockAudio = function() {
+            if(isUnlocked) return; // 如果已經解鎖過，就不重複執行
+            
+            console.log("觸發解鎖！");
             overlay.style.display = 'none'; // 隱藏遮罩
             statusDisplay.innerText = "系統就緒！請用手機控制";
-            
-            // 試圖播放一下下再暫停，騙過瀏覽器
+            isUnlocked = true;
+
+            // 試圖播放一下下
             if(player && player.playVideo) {
                  player.playVideo();
-                 setTimeout(() => { player.pauseVideo(); }, 200); 
+                 setTimeout(() => { player.pauseVideo(); }, 300); 
             }
         };
+
+        // --- 三重監聽 (Click, Touch, Keydown) ---
+        // 1. 滑鼠/游標點擊
+        overlay.addEventListener('click', window.unlockAudio);
+        
+        // 2. 觸控 (針對部分智慧電視遙控器)
+        overlay.addEventListener('touchstart', window.unlockAudio);
+
+        // 3. 鍵盤/遙控器按鍵 (這是針對 OK 鍵的解法)
+        window.addEventListener('keydown', function(e) {
+            console.log("按鍵代碼:", e.keyCode);
+            // 13 是 Enter 鍵，也是大多數遙控器的 OK 鍵
+            if (e.key === 'Enter' || e.keyCode === 13 || e.keyCode === 32) { 
+                window.unlockAudio();
+            }
+        });
 
         // 載入 YouTube API
         var tag = document.createElement('script');
@@ -150,12 +167,7 @@
         window.onYouTubeIframeAPIReady = function() {
             player = new YT.Player('player', {
                 videoId: videoId,
-                playerVars: { 
-                    'playsinline': 1, 
-                    'controls': 0, // 隱藏控制列
-                    'rel': 0, 
-                    'fs': 0 
-                },
+                playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0, 'fs': 0 },
                 events: {
                     'onReady': onPlayerReady,
                     'onError': onPlayerError
@@ -165,13 +177,12 @@
 
         function onPlayerReady(event) {
             console.log("Player Ready");
-            // 監聽 Firebase 指令
             const statusRef = ref(db, 'command');
             onValue(statusRef, (snapshot) => {
                 const cmd = snapshot.val();
                 
-                // 只有當遮罩消失後才動作
-                if (overlay.style.display === 'none') {
+                // 只有解鎖後才動作
+                if (isUnlocked) {
                     if (cmd === 'play') {
                         player.playVideo();
                         updateStatus("▶️ 燃脂開始！", false);
@@ -191,8 +202,6 @@
         }
 
         function onPlayerError(event) {
-            console.error("YouTube Error:", event.data);
-            // 某些影片如果不允許嵌入，這裡會報錯
             statusDisplay.innerText = "影片載入錯誤 (Code: " + event.data + ")";
         }
 
@@ -202,7 +211,6 @@
             else statusDisplay.classList.remove('reward-mode');
         }
 
-        // 彩帶特效
         function fireConfetti() {
             var count = 200;
             var defaults = { origin: { y: 0.7 } };
