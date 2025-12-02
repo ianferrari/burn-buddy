@@ -32,7 +32,7 @@
         .jukebox h3 { margin-top: 0; color: #555; font-size: 1rem; }
         
         .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .btn-preset { background: #e9e9eb; color: #333; font-size: 0.9rem; padding: 15px; font-weight: normal; line-height: 1.3; }
+        .btn-preset { background: #e9e9eb; color: #333; font-size: 0.95rem; padding: 15px; font-weight: normal; line-height: 1.3; }
         
         .url-input-group { display: flex; gap: 10px; }
         input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; outline: none; font-size: 1rem; }
@@ -41,7 +41,7 @@
 </head>
 <body>
 
-    <h2>📱 遙控器 V3.0</h2>
+    <h2>📱 遙控器 V3.2</h2>
     
     <div class="control-panel">
         <button class="btn-play" onclick="sendCommand('play')">▶️ 開始運動</button>
@@ -52,11 +52,11 @@
     <div class="jukebox">
         <h3>⚡ 10分鐘初階精選 (6部)</h3>
         <div class="preset-grid">
-            <button class="btn-preset" onclick="changeVideo('mxf-Zgl_pek')">🔥 游書庭(新)<br>適合新手/大體重</button>
-            
             <button class="btn-preset" onclick="changeVideo('KJrm8eVs1pE')">🔥 游書庭(經典)<br>10分鐘燃脂</button>
+
+            <button class="btn-preset" onclick="changeVideo('mxf-Zgl_pek')">🔥 游書庭(新)<br>適合新手</button>
             
-            <button class="btn-preset" onclick="changeVideo('5FVMB18072E')">💃 家寧+0<br>快樂跳舞燃脂</button>
+            <button class="btn-preset" onclick="changeVideo('9SpyPibl34E')">👩 黑面蔡媽媽<br>站立不跑跳</button>
             
             <button class="btn-preset" onclick="changeVideo('7QoHVIS-6Tk')">🧘 甜筒Luna<br>站立瘦肚子</button>
 
@@ -98,7 +98,6 @@
         function sendCommand(cmd) {
             vibrate(); 
             database.ref('command').set(cmd);
-            // 為了讓每次按都能觸發，我們先清空再寫入 (針對連續按同一指令)
             setTimeout(function(){ database.ref('command').set(''); }, 500);
         }
 
